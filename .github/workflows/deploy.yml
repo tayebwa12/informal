@@ -1,4 +1,4 @@
-name: informal
+name:   informal
 
 on:
   push:
@@ -10,12 +10,17 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Deploy
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+
+      - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: 216.104.197.76
           username: ${{ secrets.SERVER_USER }}
-          password: ${{ secrets.SERVER_PASSWORD }}
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          port: 22
           script: |
-            cd /var/www/informal
+            cd ${{ secrets.SERVER_PATH }}
             git pull origin main
