@@ -19,7 +19,7 @@ jobs:
         with:
           host: 216.104.197.76
           username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
+          key: b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZWQyNTUxOQAAACD6fjQKFoXwzz5xUrySIOnlC/OHJMhauaf1MabbaZ03eAAAAKCZIPd5mSD3eQAAAAtzc2gtZWQyNTUxOQAAACD6fjQKFoXwzz5xUrySIOnlC/OHJMhauaf1MabbaZ03eA                                                 AAAED12KEZqPm++xaMAmU0XJRHErGq1WZW2FFmZlpwRj+M0fp+NAoWhfDPPnFSvJIg6eUL                                                 84ckyFq5p/UxpttpnTd4AAAAF3RheWVid2F5b25haDdAZ21haWwuY29tAQIDBAUG
           script: |
             cd ${{ secrets.SERVER_PATH }}
             git pull origin main
