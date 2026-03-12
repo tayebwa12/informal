@@ -19,7 +19,7 @@ jobs:
         with:
           host: 216.104.197.76
           username: ${{ secrets.SERVER_USER }}
-          key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIPp+NAoWhfDPPnFSvJIg6eUL84ckyFq5p/UxpttpnTd4 tayebwayonah7@gmail.com
+          key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ${{ secrets.SERVER_PATH }}
             git pull origin main
