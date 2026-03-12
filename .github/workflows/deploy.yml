@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+        
 
       - name: Deploy to Server
         uses: appleboy/ssh-action@v1.0.3
