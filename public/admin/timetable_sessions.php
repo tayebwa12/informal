@@ -334,7 +334,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
     $err = "End time must be after start time.";
   } else {
     try {
-      // Preserve series + center; only update allowed columns
       $st = $pdo->prepare("SELECT $seriesCol AS sid, center_id FROM timetable_sessions WHERE id=? LIMIT 1");
       $st->execute([$id]);
       $cur = $st->fetch(PDO::FETCH_ASSOC);
@@ -343,13 +342,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
       $sid = (int)$cur['sid'];
       $center_id = (int)$cur['center_id'];
 
-      // Resolve occupation by code
       $st = $pdo->prepare("SELECT id FROM occupations WHERE code=? LIMIT 1");
       $st->execute([$oc]);
       $oid = (int)$st->fetchColumn();
       if ($oid <= 0) throw new RuntimeException("Occupation not found.");
 
-      // Duplicate check excluding current record
       $stDup = $pdo->prepare("
         SELECT id FROM timetable_sessions
         WHERE $seriesCol=? AND center_id=? AND session_date=? AND start_time=? AND end_time=? AND occupation_id=?
@@ -359,7 +356,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
       $stDup->execute([$sid, $center_id, $date, $start, $end, $oid, $id]);
       if ($stDup->fetchColumn()) throw new RuntimeException("Duplicate session exists.");
 
-      // Update
       $stUp = $pdo->prepare("
         UPDATE timetable_sessions
         SET session_date=?, start_time=?, end_time=?, occupation_id=?, candidate_count=?, status=?
@@ -369,7 +365,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
 
       $msg = "Session updated successfully.";
 
-      // Redirect to clear POST and exit edit mode while keeping filters/pagination
       $qs = $_GET;
       unset($qs['edit_id']);
       header("Location: ?" . http_build_query($qs));
@@ -381,11 +376,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update'])) {
   }
 }
 
-/** DELETE **/
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['delete'])) {
+/** DEACTIVATE / ACTIVATE **/
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['toggle_status'])) {
   csrf_validate($_POST['csrf'] ?? null);
-  $st = $pdo->prepare("DELETE FROM timetable_sessions WHERE id=?");
-  $st->execute([(int)$_POST['id']]); $msg = "Session deleted.";
+
+  $id = (int)($_POST['id'] ?? 0);
+  $newStatus = ($_POST['new_status'] ?? '') === 'inactive' ? 'inactive' : 'active';
+
+  if ($id <= 0) {
+    $err = "Invalid session ID.";
+  } else {
+    try {
+      $st = $pdo->prepare("UPDATE timetable_sessions SET status = ? WHERE id = ?");
+      $st->execute([$newStatus, $id]);
+
+      $msg = $newStatus === 'inactive'
+        ? "Session deactivated successfully."
+        : "Session activated successfully.";
+
+    } catch (Throwable $e) {
+      $err = "Status update failed: " . $e->getMessage();
+    }
+  }
 }
 
 /** PAGINATION & FETCH **/
@@ -549,7 +561,6 @@ function seriesNameById(array $series, int $id): string {
           <label>Filter</label>
 
           <div style="display:flex; gap:10px;">
-            <!-- Series -->
             <select id="seriesFilter" style="flex:1;">
               <option value="0">-- All Series --</option>
               <?php foreach ($series as $s): ?>
@@ -559,7 +570,6 @@ function seriesNameById(array $series, int $id): string {
               <?php endforeach; ?>
             </select>
 
-            <!-- Occupation -->
             <select id="occFilter" style="flex:1;">
               <option value="0">-- All Occupations --</option>
               <?php foreach ($occupations as $o): ?>
@@ -569,7 +579,6 @@ function seriesNameById(array $series, int $id): string {
               <?php endforeach; ?>
             </select>
 
-            <!-- Export -->
             <a class="btn btn-outline" href="<?php
               $qs = $_GET;
               $qs['export'] = 'csv';
@@ -802,11 +811,22 @@ function seriesNameById(array $series, int $id): string {
                     <i class="fa-solid fa-pen-to-square"></i>
                   </a>
 
-                  <form method="post" onsubmit="return confirm('Delete this session?');" style="display:inline;">
+                  <form method="post"
+                        onsubmit="return confirm('<?php echo $s['status'] === 'active' ? 'Deactivate this session?' : 'Activate this session?'; ?>');"
+                        style="display:inline;">
                     <input type="hidden" name="csrf" value="<?php echo h(csrf_token()); ?>">
                     <input type="hidden" name="id" value="<?php echo (int)$s['id']; ?>">
-                    <button class="btn btn-danger" style="padding: 6px 10px;" name="delete" value="1" type="submit" title="Delete">
-                      <i class="fa-solid fa-trash-can"></i>
+                    <input type="hidden" name="new_status" value="<?php echo $s['status'] === 'active' ? 'inactive' : 'active'; ?>">
+
+                    <button
+                      class="btn <?php echo $s['status'] === 'active' ? 'btn-danger' : 'btn-outline'; ?>"
+                      style="padding: 6px 10px;"
+                      name="toggle_status"
+                      value="1"
+                      type="submit"
+                      title="<?php echo $s['status'] === 'active' ? 'Deactivate' : 'Activate'; ?>"
+                    >
+                      <i class="fa-solid <?php echo $s['status'] === 'active' ? 'fa-ban' : 'fa-rotate-left'; ?>"></i>
                     </button>
                   </form>
                 </div>
