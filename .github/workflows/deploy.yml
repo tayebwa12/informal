@@ -23,5 +23,3 @@ jobs:
           script: |
             cd ${{ secrets.SERVER_PATH }}
             git pull origin main
-
-          debug: true
